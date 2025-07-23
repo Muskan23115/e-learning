@@ -83,3 +83,33 @@ body.dashboard-body {
 .dashboard button:hover {
   background-color: #b0628b;
 }
+.checkout-body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #fce3ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.checkout-container {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+#payBtn {
+  padding: 12px 25px;
+  font-size: 16px;
+  background-color: #d67fa8;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-top: 20px;
+}
+#payBtn:hover {
+  background-color: #b0628b;
+}
