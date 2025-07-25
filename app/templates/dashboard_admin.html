@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<section class="dashboard-section">
+    <h1 class="headline">Super Admin Panel 👑</h1>
+    <div class="dashboard-cards" style="margin-bottom:2rem;">
+        <div class="glass-card dashboard-card">
+            <h3>Total Users</h3>
+            <p class="earnings">{{ total_users }}</p>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h3>Total Courses</h3>
+            <p class="earnings">{{ total_courses }}</p>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h3>Total Transactions</h3>
+            <p class="earnings">{{ total_transactions }}</p>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h3>Top-Earning Teacher</h3>
+            <p class="earnings">{{ top_teacher.name if top_teacher else 'N/A' }}</p>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h3>Most Popular Course</h3>
+            <p class="earnings">{{ popular_course.title if popular_course else 'N/A' }}</p>
+        </div>
+    </div>
+    <div class="dashboard-cards">
+        <div class="glass-card dashboard-card">
+            <h2>Users</h2>
+            <ul class="admin-list">
+                {% for user in users %}
+                <li>{{ user.name }} ({{ user.role|capitalize }})</li>
+                {% else %}
+                <li>No users found.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h2>Courses</h2>
+            <ul class="admin-list">
+                {% for course in courses %}
+                <li>{{ course.title }} (By {{ course.teacher.name }})</li>
+                {% else %}
+                <li>No courses found.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h2>Transactions</h2>
+            <ul class="admin-list">
+                {% for t in transactions %}
+                <li>Order #{{ t.purchase_id }} - ₹{{ t.teacher_amount + t.admin_amount|int }} - <span class="paid">{{ t.status|capitalize }}</span></li>
+                {% else %}
+                <li>No transactions yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h2>Platform Earnings</h2>
+            <p class="earnings">₹{{ platform_earnings|int }}</p>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h2>Announcements</h2>
+            <a href="{{ url_for('admin.announcements') }}" class="btn glass-btn">Manage Announcements</a>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h2>Support</h2>
+            <a href="{{ url_for('admin.support') }}" class="btn glass-btn">View Messages</a>
+        </div>
+    </div>
+</section>
+{% endblock %} 

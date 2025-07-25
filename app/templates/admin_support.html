@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Support Messages{% endblock %}
+{% block content %}
+<section class="dashboard-section">
+    <div class="glass-card dashboard-card" style="max-width:700px; margin:auto;">
+        <h1 class="headline">Support Messages</h1>
+        {% if messages %}
+        <ul class="admin-list">
+            {% for msg in messages %}
+            <li style="margin-bottom:1.2rem;">
+                <strong>{{ msg.name }}</strong> (<a href="mailto:{{ msg.email }}">{{ msg.email }}</a>)<br>
+                <span style="font-size:0.95em; color:#7d5a8c;">{{ msg.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                <div style="margin-top:0.5rem;">{{ msg.message }}</div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No support messages yet.</p>
+        {% endif %}
+        <a href="{{ url_for('admin.dashboard') }}" class="btn glass-btn secondary" style="margin-top:1.2rem;">Back to Dashboard</a>
+    </div>
+</section>
+{% endblock %} 

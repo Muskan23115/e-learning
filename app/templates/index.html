@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Your Smart Uni Sidekick ✨{% endblock %}
+{% block content %}
+<section class="hero">
+    <div class="hero-content glass-card">
+        <h1 class="headline">Your Smart Uni Sidekick ✨</h1>
+        <p class="subtext">Level up your learning journey with style, sparkle, and smarts!</p>
+        <div class="cta-buttons">
+            <a href="/login" class="btn glass-btn">Get Started</a>
+            <a href="#contact" class="btn glass-btn secondary">Ask Doubts</a>
+        </div>
+    </div>
+</section>
+<section id="contact" class="contact-form-section">
+    <form class="contact-form glass-card" method="POST" action="/contact">
+        <h2>Contact / Query</h2>
+        <input type="text" name="name" placeholder="Your Name" required>
+        <input type="email" name="email" placeholder="Your Email" required>
+        <textarea name="message" placeholder="Your Message" required></textarea>
+        <button type="submit" class="btn glass-btn">Submit</button>
+    </form>
+</section>
+{% endblock %} 

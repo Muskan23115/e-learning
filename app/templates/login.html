@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<section class="auth-section">
+    <form class="auth-form glass-card" method="POST" action="{{ url_for('auth.login') }}">
+        <h1 class="headline">Login</h1>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit" class="btn glass-btn">Login</button>
+        
+        <div class="auth-links" style="text-align: center; margin-top: 1.5rem;">
+            <p class="auth-switch">Don't have an an account? 
+                <!-- This link should work correctly -->
+                <a href="{{ url_for('auth.signup') }}">Sign up</a>
+            </p>
+            <p class="auth-switch" style="margin-top: 0.5rem;">
+                <!-- JAVASCRIPT FIX: This forces navigation and prevents form submission -->
+                <a href="#" onclick="window.location.href='{{ url_for('auth.reset_password_request') }}'; return false;">
+                    Forgot Password?
+                </a>
+            </p>
+        </div>
+
+    </form>
+</section>
+{% endblock %}

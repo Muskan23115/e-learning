@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Announcements{% endblock %}
+{% block content %}
+<section class="dashboard-section">
+    <div class="glass-card dashboard-card" style="max-width:700px; margin:auto;">
+        <h1 class="headline">Announcements</h1>
+        <form method="POST" class="upload-form" style="margin-bottom:2rem;">
+            <textarea name="message" placeholder="Write an announcement..." required style="min-height:70px;"></textarea>
+            <button type="submit" class="btn glass-btn">Post Announcement</button>
+        </form>
+        {% if announcements %}
+        <ul class="admin-list">
+            {% for a in announcements %}
+            <li style="margin-bottom:1.2rem;">
+                <span style="font-size:0.95em; color:#7d5a8c;">{{ a.timestamp.strftime('%Y-%m-%d %H:%M') }}</span><br>
+                {{ a.message }}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No announcements yet.</p>
+        {% endif %}
+        <a href="{{ url_for('admin.dashboard') }}" class="btn glass-btn secondary" style="margin-top:1.2rem;">Back to Dashboard</a>
+    </div>
+</section>
+{% endblock %} 

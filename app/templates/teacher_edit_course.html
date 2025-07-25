@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Edit Course | {{ course.title }}{% endblock %}
+{% block content %}
+<section class="dashboard-section">
+    <div class="glass-card dashboard-card" style="max-width:600px; margin:auto;">
+        <h1 class="headline">Edit Course</h1>
+        <form class="upload-form" method="POST" enctype="multipart/form-data">
+            <input type="text" name="title" value="{{ course.title }}" placeholder="Course Title" required>
+            <textarea name="description" placeholder="Description" required>{{ course.description }}</textarea>
+            <select name="type" required>
+                <option value="live" {% if course.type == 'live' %}selected{% endif %}>Live</option>
+                <option value="recorded" {% if course.type == 'recorded' %}selected{% endif %}>Recorded</option>
+            </select>
+            <input type="number" name="price" value="{{ course.price|int }}" placeholder="Price (₹)" min="0" step="1" required>
+            <label style="margin-top:1rem;">Current Video:</label>
+            {% if course.video_url %}
+            <video width="100%" height="180" controls style="margin-bottom:1rem;">
+                <source src="/{{ course.video_url }}" type="video/mp4">
+            </video>
+            {% else %}
+            <p><em>No video uploaded.</em></p>
+            {% endif %}
+            <input type="file" name="video" accept="video/*">
+            <label style="margin-top:1rem;">Current Notes:</label>
+            {% if course.notes_url %}
+            <a href="/{{ course.notes_url }}" target="_blank">Download Notes (PDF)</a>
+            {% else %}
+            <p><em>No notes uploaded.</em></p>
+            {% endif %}
+            <input type="file" name="notes" accept="application/pdf">
+            <button type="submit" class="btn glass-btn" style="margin-top:1.2rem;">Update Course</button>
+            <a href="{{ url_for('teacher.dashboard') }}" class="btn glass-btn secondary" style="margin-top:1.2rem;">Cancel</a>
+        </form>
+    </div>
+</section>
+{% endblock %} 

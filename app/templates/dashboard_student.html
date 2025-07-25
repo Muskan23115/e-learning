@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}Student Dashboard{% endblock %}
+{% block content %}
+<section class="dashboard-section">
+    <h1 class="headline">Welcome, {{ current_user.name }}! 🎓</h1>
+    {% if unread_announcements %}
+    <div class="flash-messages" style="margin-bottom:1.5rem;">
+        {% for a in unread_announcements %}
+        <form method="POST" action="{{ url_for('student.announcement_read', announcement_id=a.id) }}" style="margin-bottom:0.7rem;display:flex;align-items:center;gap:1rem;">
+            <div class="flash flash-success" style="flex:1;">{{ a.message }}<br><span style="font-size:0.95em; color:#7d5a8c;">{{ a.timestamp.strftime('%Y-%m-%d %H:%M') }}</span></div>
+            <button type="submit" class="btn glass-btn secondary" style="height:2.2rem;">Dismiss</button>
+        </form>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="dashboard-cards">
+        <div class="glass-card dashboard-card">
+            <h2>Available Courses</h2>
+            <div class="card-list">
+                {% for course in available_courses %}
+                <div class="mini-card">
+                    <!-- This div groups the text content -->
+                    <div>
+                        <h3>{{ course.title }}</h3>
+                        <p>By {{ course.teacher.name }}</p>
+                        <!-- Conditionally display the price -->
+                        {% if course.price and course.price > 0 %}
+                            <p class="price">Price: ₹{{ course.price|int }}</p>
+                        {% else %}
+                            <p class="price">Price: Free</p>
+                        {% endif %}
+                    </div>
+                    <!-- This div holds the button, ensuring it's at the bottom -->
+                    <div>
+                        <!-- Conditionally show Purchase or Enroll button -->
+                        {% if course.price and course.price > 0 %}
+                            <button class="btn glass-btn" onclick="purchaseCourse({{ course.id }}, '{{ course.title|escapejs }}')">Purchase</button>
+                        {% else %}
+                            <form action="{{ url_for('student.enroll_free') }}" method="POST" style="margin:0;">
+                                <input type="hidden" name="course_id" value="{{ course.id }}">
+                                <button type="submit" class="btn glass-btn secondary">Enroll for Free</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <p>No new courses available.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h2>My Courses</h2>
+            <div class="card-list">
+                {% for course in purchased_courses %}
+                <div class="mini-card">
+                    <h3>{{ course.title }}</h3>
+                    <a href="{{ url_for('student.view_course', course_id=course.id) }}" class="btn glass-btn secondary">Watch</a>
+                    {% if course.notes_url %}
+                    <a href="/{{ course.notes_url }}" class="btn glass-btn" target="_blank">Notes</a>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p>No courses purchased yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h2>Order History</h2>
+            <ul class="order-list">
+                {% for order in order_history %}
+                 <!-- Show 'Free' for courses with 0 amount -->
+                <li>{{ order.course.title }} - {% if order.amount > 0 %}₹{{ order.amount|int }}{% else %}Free{% endif %} - <span class="paid">{% if order.amount > 0 %}Paid{% else %}Enrolled{% endif %}</span></li>
+                {% else %}
+                <li>No orders yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</section>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+// This function is now only used for PAID courses
+function purchaseCourse(courseId, courseTitle) {
+    fetch('/student/create_order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id: courseId })
+    })
+    .then(res => {
+        if (!res.ok) {
+            // If we get a server error, show a generic message
+            return res.json().then(err => { throw new Error(err.error || 'Could not create payment order.') });
+        }
+        return res.json();
+    })
+    .then(data => {
+        var options = {
+            key: data.key_id,
+            amount: data.amount,
+            currency: data.currency,
+            name: 'Smart Uni Sidekick',
+            description: 'Purchase: ' + courseTitle,
+            order_id: data.order_id,
+            handler: function (response) {
+                // On payment success
+                fetch('/student/payment_success', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        course_id: courseId,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_signature: response.razorpay_signature
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Payment verification failed.');
+                    }
+                });
+            },
+            theme: { color: '#e75480' }
+        };
+        var rzp = new Razorpay(options);
+        rzp.open();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message);
+    });
+}
+</script>
+{% endblock %}

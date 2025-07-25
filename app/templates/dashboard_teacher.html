@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Teacher Dashboard{% endblock %}
+{% block content %}
+<section class="dashboard-section">
+    <h1 class="headline">Welcome, {{ current_user.name }}! 🍎</h1>
+    {% if unread_announcements %}
+    <div class="flash-messages" style="margin-bottom:1.5rem;">
+        {% for a in unread_announcements %}
+        <form method="POST" action="{{ url_for('teacher.announcement_read', announcement_id=a.id) }}" style="margin-bottom:0.7rem;display:flex;align-items:center;gap:1rem;">
+            <div class="flash flash-success" style="flex:1;">{{ a.message }}<br><span style="font-size:0.95em; color:#7d5a8c;">{{ a.timestamp.strftime('%Y-%m-%d %H:%M') }}</span></div>
+            <button type="submit" class="btn glass-btn secondary" style="height:2.2rem;">Dismiss</button>
+        </form>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="dashboard-cards" style="margin-bottom:2rem;">
+        <div class="glass-card dashboard-card">
+            <h3>Total Courses</h3>
+            <p class="earnings">{{ total_courses }}</p>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h3>Total Students</h3>
+            <p class="earnings">{{ total_students }}</p>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h3>Best-Selling Course</h3>
+            <p class="earnings">{{ best_course.title if best_course else 'N/A' }}</p>
+        </div>
+    </div>
+    <div class="dashboard-cards">
+        <div class="glass-card dashboard-card">
+            <h2>Upload New Course</h2>
+            <form class="upload-form" method="POST" enctype="multipart/form-data">
+                <input type="text" name="title" placeholder="Course Title" required>
+                <textarea name="description" placeholder="Description" required></textarea>
+                <select name="type" required>
+                    <option value="">Type</option>
+                    <option value="live">Live</option>
+                    <option value="recorded">Recorded</option>
+                </select>
+                <input type="number" name="price" placeholder="Price (₹)" min="0" step="1" required>
+                <input type="file" name="video" accept="video/*">
+                <input type="file" name="notes" accept="application/pdf">
+                <button type="submit" class="btn glass-btn">Upload</button>
+            </form>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h2>My Courses</h2>
+            <div class="card-list">
+                {% for course in my_courses %}
+                <div class="mini-card">
+                    <h3>{{ course.title }}</h3>
+                    <a href="{{ url_for('teacher.edit_course', course_id=course.id) }}" class="btn glass-btn secondary">Edit</a>
+                    <form method="POST" action="{{ url_for('teacher.delete_course', course_id=course.id) }}" style="display:inline;">
+                        <button type="submit" class="btn glass-btn" onclick="return confirm('Are you sure you want to delete this course?');">Delete</button>
+                    </form>
+                </div>
+                {% else %}
+                <p>No courses uploaded yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="glass-card dashboard-card">
+            <h2>Earnings</h2>
+            <p class="earnings">₹{{ total_earnings|int }}</p>
+        </div>
+    </div>
+</section>
+{% endblock %} 
