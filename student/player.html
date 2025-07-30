@@ -1,0 +1,26 @@
+<video id="courseVideo" width="800" controls>
+  <source src="/path/to/video.mp4" type="video/mp4">
+
+  <track kind="subtitles" label="Spanish → English" src="/student/assets/subtitles/video1-spanish.vtt" srclang="es" default>
+  <track kind="subtitles" label="Japanese → English" src="/student/assets/subtitles/video1-japanese.vtt" srclang="ja">
+
+  Your browser does not support the video tag.
+</video>
+
+<select id="captionSelect">
+  <option value="0">Spanish → English</option>
+  <option value="1">Japanese → English</option>
+  <option value="none">No Captions</option>
+</select>
+
+<script>
+  document.getElementById('captionSelect').addEventListener('change', function() {
+    var video = document.getElementById('courseVideo');
+    var tracks = video.textTracks;
+    for (var i = 0; i < tracks.length; i++) {
+      tracks[i].mode = 'disabled'; // Disable all tracks
+    }
+    if (this.value !== 'none') {
+      tracks[this.value].mode = 'showing'; // Enable selected track
+    }
+  });
