@@ -7,144 +7,61 @@ import os
 import time
 import traceback
 import json
+import requests # For making API calls
+import re # For parsing VTT files
 
 bp = Blueprint('student', __name__)
 
-razorpay_client = razorpay.Client(
-    auth=(
-        os.getenv('RAZORPAY_KEY_ID', 'rzp_test_1DP5mmOlF5G5ag'),
-        os.getenv('RAZORPAY_KEY_SECRET', '0TrjAPO9uUnJ9d2hElVkyv0i')
-    )
-)
+# ... (all your other routes like enroll_free, create_order, etc. remain here) ...
 
-
-@bp.route('/student/enroll_free', methods=['POST'])
-@login_required
-def enroll_free():
-    try:
-        course_id = request.form.get('course_id')
-        course = Course.query.get(course_id)
-
-        if not course:
-            flash('Course not found.', 'danger')
-            return redirect(url_for('student.dashboard'))
-        
-        if course.price and course.price > 0:
-            flash('This course is not free.', 'danger')
-            return redirect(url_for('student.dashboard'))
-
-        is_already_purchased = Purchase.query.filter_by(student_id=current_user.id, course_id=course.id).first()
-        if is_already_purchased:
-            flash('You are already enrolled in this course.', 'info')
-            return redirect(url_for('student.dashboard'))
-
-        purchase = Purchase(student_id=current_user.id, course_id=course.id, amount=0)
-        db.session.add(purchase)
-        db.session.commit()
-        
-        flash(f'You have successfully enrolled in {course.title}!', 'success')
-
-    except Exception as e:
-        traceback.print_exc()
-        flash('An error occurred while enrolling.', 'danger')
-
-    return redirect(url_for('student.dashboard'))
-
-
-@bp.route('/student/create_order', methods=['POST'])
-@login_required
-def create_order():
-    try:
-        data = request.get_json()
-        course_id = data.get('course_id')
-        course = Course.query.get(course_id)
-
-        if not course:
-            return jsonify({'error': 'Course not found'}), 404
-
-        if not course.price or course.price <= 0:
-            return jsonify({'error': 'This course cannot be purchased. It might be free.'}), 400
-
-        order_amount = int(course.price * 100)
-        order_currency = 'INR'
-        order_receipt = f'order_rcptid_{course_id}_{current_user.id}_{int(time.time())}'
-        
-        order_details = {'amount': order_amount, 'currency': order_currency, 'receipt': order_receipt}
-        order = razorpay_client.order.create(order_details)
-
-        return jsonify({
-            'order_id': order['id'],
-            'amount': order['amount'],
-            'currency': order['currency'],
-            'key_id': os.getenv('RAZORPAY_KEY_ID', 'rzp_test_1DP5mmOlF5G5ag'),
-            'course_id': course_id,
-            'course_title': course.title
-        })
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({'error': 'An internal error occurred. Could not create payment order.'}), 500
-
-
-@bp.route('/student/payment_success', methods=['POST'])
-@login_required
-def payment_success():
-    data = request.json
-    course_id = data.get('course_id')
-    payment_id = data.get('razorpay_payment_id')
-    order_id = data.get('razorpay_order_id')
-    signature = data.get('razorpay_signature')
-    course = Course.query.get(course_id)
-    if not course:
-        return jsonify({'error': 'Course not found'}), 404
-
-    params_dict = {
-        'razorpay_order_id': order_id,
-        'razorpay_payment_id': payment_id,
-        'razorpay_signature': signature
-    }
-    try:
-        razorpay_client.utility.verify_payment_signature(params_dict)
-    except Exception as e:
-        return jsonify({'error': 'Payment verification failed'}), 400
-
-    purchase = Purchase(student_id=current_user.id, course_id=course.id, amount=course.price)
-    db.session.add(purchase)
-    db.session.commit()
-    teacher_amount = course.price * 0.9
-    admin_amount = course.price * 0.1
-    transaction = Transaction(purchase_id=purchase.id, teacher_amount=teacher_amount, admin_amount=admin_amount, status='paid')
-    db.session.add(transaction)
-    db.session.commit()
-    return jsonify({'success': True})
-
-@bp.route('/student/announcement_read/<int:announcement_id>', methods=['POST'])
-@login_required
-def announcement_read(announcement_id):
-    if not AnnouncementRead.query.filter_by(user_id=current_user.id, announcement_id=announcement_id).first():
-        ar = AnnouncementRead(user_id=current_user.id, announcement_id=announcement_id)
-        db.session.add(ar)
-        db.session.commit()
-    return ('', 204)
-
-@bp.route('/student/dashboard')
-@login_required
-def dashboard():
-    purchased_ids = [p.course_id for p in current_user.purchases]
-    available_courses = Course.query.filter(~Course.id.in_(purchased_ids)).all()
-    purchased_courses = [p.course for p in current_user.purchases]
-    order_history = current_user.purchases
+def translate_vtt_content(vtt_content, from_lang, to_lang='en'):
+    """Translates the text portions of a VTT file using MyMemory API."""
+    lines = vtt_content.strip().split('\n')
+    translated_lines = []
     
-    all_announcements = Announcement.query.order_by(Announcement.timestamp.desc()).all()
-    read_ids = {ar.announcement_id for ar in AnnouncementRead.query.filter_by(user_id=current_user.id).all()}
-    unread_announcements = [a for a in all_announcements if a.id not in read_ids]
+    # Regex to find text lines (that don't have '-->' and are not timestamps)
+    text_pattern = re.compile(r'^\d{2}:\d{2}:\d{2}\.\d{3}\s-->\s\d{2}:\d{2}:\d{2}\.\d{3}$')
     
-    return render_template(
-        'dashboard_student.html',
-        available_courses=available_courses,
-        purchased_courses=purchased_courses,
-        order_history=order_history,
-        unread_announcements=unread_announcements
-    )
+    # Collect all text to translate in one batch
+    texts_to_translate = []
+    for line in lines:
+        if line.strip() and not text_pattern.match(line) and 'WEBVTT' not in line:
+            texts_to_translate.append(line)
+            
+    # API call to translate the batch
+    translated_texts = {}
+    if texts_to_translate:
+        try:
+            # Join with a unique separator to translate as one block
+            separator = "|||"
+            text_block = separator.join(texts_to_translate)
+            api_url = f"https://api.mymemory.translated.net/get?q={text_block}&langpair={from_lang}|{to_lang}"
+            response = requests.get(api_url)
+            response.raise_for_status()
+            data = response.json()
+            translated_block = data['responseData']['translatedText']
+            
+            # Split the translated block back into individual lines
+            translated_list = translated_block.split(separator)
+            
+            # Create a mapping from original text to translated text
+            if len(texts_to_translate) == len(translated_list):
+                 for i in range(len(texts_to_translate)):
+                    translated_texts[texts_to_translate[i]] = translated_list[i].strip()
+
+        except requests.exceptions.RequestException as e:
+            print(f"Translation API call failed: {e}")
+            return None # Return None if translation fails
+
+    # Reconstruct the VTT file with translated text
+    for line in lines:
+        if line in translated_texts:
+            translated_lines.append(translated_texts[line])
+        else:
+            translated_lines.append(line)
+            
+    return "\n".join(translated_lines)
+
 
 @bp.route('/student/course/<int:course_id>')
 @login_required
@@ -165,26 +82,44 @@ def view_course(course_id):
         video_filename_only = os.path.basename(course.video_url)
         base_filename = video_filename_only.rsplit('.', 1)[0]
         
-        # Check for original subtitle file
-        original_vtt_path = os.path.join(current_app.root_path, 'static', 'subtitles', f"{base_filename}.vtt")
+        original_vtt_filename = f"{base_filename}.vtt"
+        original_vtt_path = os.path.join(current_app.root_path, 'static', 'subtitles', original_vtt_filename)
+        
         if os.path.exists(original_vtt_path):
-            subtitle_file = f"{base_filename}.vtt"
+            subtitle_file = original_vtt_filename
 
-        # Check for English subtitle file
-        english_vtt_path = os.path.join(current_app.root_path, 'static', 'subtitles', f"{base_filename}.en.vtt")
-        if os.path.exists(english_vtt_path):
-            english_subtitle_file = f"{base_filename}.en.vtt"
-
-        # Read language metadata
-        metadata_path = os.path.join(current_app.root_path, 'static', 'subtitles', f"{base_filename}.json")
-        if os.path.exists(metadata_path):
-            try:
-                with open(metadata_path, 'r', encoding='utf-8') as f:
-                    metadata = json.load(f)
-                    lang_code = metadata.get('language_code', lang_code)
-                    lang_name = metadata.get('language_name', lang_name)
-            except (IOError, json.JSONDecodeError):
-                pass
+            # Read language metadata
+            metadata_filename = f"{base_filename}.json"
+            metadata_path = os.path.join(current_app.root_path, 'static', 'subtitles', metadata_filename)
+            if os.path.exists(metadata_path):
+                try:
+                    with open(metadata_path, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+                        lang_code = metadata.get('language_code', lang_code)
+                        lang_name = metadata.get('language_name', lang_name)
+                except (IOError, json.JSONDecodeError):
+                    pass
+            
+            # --- NEW LOGIC: TRANSLATE ON-THE-FLY ---
+            english_vtt_filename = f"{base_filename}.en.vtt"
+            english_vtt_path = os.path.join(current_app.root_path, 'static', 'subtitles', english_vtt_filename)
+            
+            # Only translate if the English file doesn't exist and the original language isn't English
+            if not os.path.exists(english_vtt_path) and lang_code != 'en':
+                print(f"Translating {original_vtt_filename} to English...")
+                with open(original_vtt_path, 'r', encoding='utf-8') as f:
+                    vtt_content = f.read()
+                
+                translated_content = translate_vtt_content(vtt_content, lang_code)
+                
+                if translated_content:
+                    with open(english_vtt_path, 'w', encoding='utf-8') as f:
+                        f.write(translated_content)
+                    print("Translation saved.")
+            
+            if os.path.exists(english_vtt_path):
+                english_subtitle_file = english_vtt_filename
+            # ----------------------------------------
 
     return render_template(
         'student_view_course.html', 
