@@ -1,3 +1,4 @@
+# Use a Python base image
 FROM python:3.10-slim
 
 # Install system dependencies, including FFmpeg
@@ -23,3 +24,4 @@ COPY process_video.py .
 
 # Set the entrypoint to run the script by default
 ENTRYPOINT ["python", "process_video.py"]
+```python

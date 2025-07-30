@@ -26,9 +26,15 @@ def create_vtt_content(result_segments) -> str:
 def translate_segments(segments, from_code, to_code="en"):
     """Translates a list of whisper segments using pre-installed models."""
     translated_segments = []
+    # Load the installed translation model
+    installed_languages = argostranslate.translate.get_installed_languages()
+    from_lang = list(filter(lambda x: x.code == from_code, installed_languages))[0]
+    to_lang = list(filter(lambda x: x.code == to_code, installed_languages))[0]
+    translation = from_lang.get_translation(to_lang)
+
     for segment in segments:
         # Perform the translation
-        translated_text = argostranslate.translate.translate(segment['text'], from_code, to_code)
+        translated_text = translation.translate(segment['text'])
         new_segment = segment.copy()
         new_segment['text'] = translated_text
         translated_segments.append(new_segment)
