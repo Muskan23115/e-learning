@@ -1,75 +1,65 @@
-from app import db, app # <-- MODIFIED: Import 'app'
+from . import db
 from flask_login import UserMixin
 from datetime import datetime
-from itsdangerous import URLSafeTimedSerializer as Serializer # <-- ADDED: For secure tokens
 
-class User(UserMixin, db.Model):
+# This file defines the database models for the application.
+
+class User(db.Model, UserMixin):
+    """User model for students, teachers, and admins."""
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150), nullable=False)
+    username = db.Column(db.String(150), unique=True, nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # student, teacher, admin
-    courses = db.relationship('Course', backref='teacher', lazy=True)
+    password = db.Column(db.String(150), nullable=False)
+    role = db.Column(db.String(50), nullable=False, default='student')
+    
+    # Relationships
     purchases = db.relationship('Purchase', backref='student', lazy=True)
-
-    # ==================================================
-    # ADDED METHODS FOR PASSWORD RESET
-    # ==================================================
-    def get_reset_token(self, expires_sec=1800):
-        """Generates a secure, timed token for password reset."""
-        s = Serializer(app.config['SECRET_KEY'])
-        return s.dumps({'user_id': self.id})
-
-    @staticmethod
-    def verify_reset_token(token, expires_sec=1800):
-        """Verifies the reset token and returns the User if valid."""
-        s = Serializer(app.config['SECRET_KEY'])
-        try:
-            user_id = s.loads(token, max_age=expires_sec)['user_id']
-        except Exception:
-            return None
-        return User.query.get(user_id)
-    # ==================================================
+    messages = db.relationship('SupportMessage', backref='user', lazy=True)
+    courses_taught = db.relationship('Course', backref='teacher', lazy=True)
 
 class Course(db.Model):
+    """Course model."""
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    teacher_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     price = db.Column(db.Float, nullable=False)
-    type = db.Column(db.String(20), nullable=False)  # live, recorded
-    video_url = db.Column(db.String(300))
-    notes_url = db.Column(db.String(300))
-    purchases = db.relationship('Purchase', backref='course', lazy=True)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    video_url = db.Column(db.String(200), nullable=True) 
 
 class Purchase(db.Model):
+    """Represents a student's purchase of a course."""
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    transaction = db.relationship('Transaction', backref='purchase', uselist=False)
+    course = db.relationship('Course', backref='purchases')
 
 class Transaction(db.Model):
+    """Represents the financial transaction for a purchase."""
     id = db.Column(db.Integer, primary_key=True)
     purchase_id = db.Column(db.Integer, db.ForeignKey('purchase.id'), nullable=False)
     teacher_amount = db.Column(db.Float, nullable=False)
     admin_amount = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='pending')
-
-class SupportMessage(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150), nullable=False)
-    email = db.Column(db.String(150), nullable=False)
-    message = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(50), nullable=False, default='pending')
 
 class Announcement(db.Model):
+    """Model for general announcements."""
     id = db.Column(db.Integer, primary_key=True)
-    message = db.Column(db.Text, nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 class AnnouncementRead(db.Model):
+    """Tracks which user has read which announcement."""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     announcement_id = db.Column(db.Integer, db.ForeignKey('announcement.id'), nullable=False)
+
+class SupportMessage(db.Model):
+    """Model for support messages from users."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    subject = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)

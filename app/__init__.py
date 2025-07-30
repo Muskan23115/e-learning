@@ -3,6 +3,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
+from flask_migrate import Migrate
 import os
 import json
 
@@ -10,10 +11,11 @@ import json
 db = SQLAlchemy()
 login_manager = LoginManager()
 mail = Mail()
+migrate = Migrate()
 
 def create_app():
     """
-    An application factory, which is the standard way to create Flask apps.
+    An application factory to structure the Flask app correctly.
     """
     app = Flask(__name__)
 
@@ -32,17 +34,19 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
+    migrate.init_app(app, db) # Initialize Migrate here
 
     # --- Login Manager Setup ---
-    login_manager.login_view = 'auth.login' # The page to redirect to for login
+    login_manager.login_view = 'auth.login'
 
     @login_manager.user_loader
     def load_user(user_id):
-        # We need to import User here to avoid circular imports
+        # Import here to avoid circular import errors
         from .models import User
         return User.query.get(int(user_id))
 
     # --- Register Blueprints ---
+    # Use a context to ensure the app is ready before importing routes
     with app.app_context():
         from .routes import auth, student, teacher, admin
 
@@ -52,3 +56,4 @@ def create_app():
         app.register_blueprint(admin.bp)
 
     return app
+
