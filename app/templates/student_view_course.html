@@ -1,10 +1,8 @@
-<!-- This uses variables from your Python code -->
 <video controls width="100%">
     
-    <!-- Use the video_url directly, prepended with a '/' to make it a root-relative path -->
     <source src="/{{ course.video_url }}" type="video/mp4">
 
-    <!-- This 'if' block prevents an error if a video has no subtitles -->
+    <!-- Original Language Track -->
     {% if subtitle_file %}
     <track
         kind="subtitles"
@@ -13,37 +11,68 @@
         srclang="{{ lang_code }}"
         default>
     {% endif %}
+    
+    <!-- English Translation Track -->
+    {% if english_subtitle_file %}
+    <track
+        kind="subtitles"
+        label="English"
+        src="{{ url_for('static', filename='subtitles/' + english_subtitle_file) }}"
+        srclang="en">
+    {% endif %}
   
     Your browser does not support the video tag.
 </video>
 
-<!-- The dropdown and script can remain the same -->
-<select id="captionSelect" style="margin-top: 15px; padding: 8px;">
-    <!-- Use the dynamic language name here -->
-    <option value="0">{{ lang_name }}</option>
-    <option value="none">No Captions</option>
-</select>
+<select id="captionSelect" style="margin-top: 15px; padding: 8px;"></select>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const captionSelect = document.getElementById('captionSelect');
         const video = document.querySelector('video');
+        const captionSelect = document.getElementById('captionSelect');
+        
+        // Wait a moment for tracks to be loaded by the browser
+        setTimeout(function() {
+            const tracks = video.textTracks;
 
-        if (captionSelect && video) {
-            captionSelect.addEventListener('change', function() {
-                const tracks = video.textTracks;
-                
+            if (captionSelect && video && tracks.length > 0) {
+                // Populate dropdown based on available tracks
+                captionSelect.innerHTML = ''; // Clear existing options
                 for (let i = 0; i < tracks.length; i++) {
-                    tracks[i].mode = 'disabled';
+                    const track = tracks[i];
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = track.label;
+                    captionSelect.appendChild(option);
+                    // Set initial mode
+                    track.mode = track.default ? 'showing' : 'disabled';
                 }
+                const noCapOption = document.createElement('option');
+                noCapOption.value = 'none';
+                noCapOption.textContent = 'No Captions';
+                captionSelect.appendChild(noCapOption);
 
-                if (this.value !== 'none') {
-                    const trackIndex = parseInt(this.value, 10);
-                    if (tracks[trackIndex]) {
-                        tracks[trackIndex].mode = 'showing';
+                // Set dropdown to the currently showing track
+                for (let i = 0; i < tracks.length; i++) {
+                    if (tracks[i].mode === 'showing') {
+                        captionSelect.value = i;
+                        break;
                     }
                 }
-            });
-        }
+
+                // Event listener for changing tracks
+                captionSelect.addEventListener('change', function() {
+                    for (let i = 0; i < tracks.length; i++) {
+                        tracks[i].mode = 'disabled';
+                    }
+                    if (this.value !== 'none') {
+                        tracks[parseInt(this.value)].mode = 'showing';
+                    }
+                });
+            } else if (captionSelect) {
+                // Hide dropdown if no tracks are available
+                captionSelect.style.display = 'none';
+            }
+        }, 500); // 500ms delay
     });
 </script>

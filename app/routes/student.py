@@ -6,7 +6,9 @@ import razorpay
 import os
 import time
 import traceback
-import json # Import the json library
+import json
+
+bp = Blueprint('student', __name__)
 
 bp = Blueprint('student', __name__)
 
@@ -157,18 +159,26 @@ def view_course(course_id):
         return redirect(url_for('student.dashboard'))
 
     subtitle_file = None
+    english_subtitle_file = None
     lang_code = 'en'
     lang_name = 'English'
 
     if course.video_url:
         video_filename_only = os.path.basename(course.video_url)
         base_filename = video_filename_only.rsplit('.', 1)[0]
-        subtitle_file = f"{base_filename}.vtt"
-
-        # --- NEW LOGIC: READ LANGUAGE METADATA ---
-        metadata_filename = f"{base_filename}.json"
-        metadata_path = os.path.join(current_app.root_path, 'static', 'subtitles', metadata_filename)
         
+        # Check for original subtitle file
+        original_vtt_path = os.path.join(current_app.root_path, 'static', 'subtitles', f"{base_filename}.vtt")
+        if os.path.exists(original_vtt_path):
+            subtitle_file = f"{base_filename}.vtt"
+
+        # Check for English subtitle file
+        english_vtt_path = os.path.join(current_app.root_path, 'static', 'subtitles', f"{base_filename}.en.vtt")
+        if os.path.exists(english_vtt_path):
+            english_subtitle_file = f"{base_filename}.en.vtt"
+
+        # Read language metadata
+        metadata_path = os.path.join(current_app.root_path, 'static', 'subtitles', f"{base_filename}.json")
         if os.path.exists(metadata_path):
             try:
                 with open(metadata_path, 'r', encoding='utf-8') as f:
@@ -176,13 +186,13 @@ def view_course(course_id):
                     lang_code = metadata.get('language_code', lang_code)
                     lang_name = metadata.get('language_name', lang_name)
             except (IOError, json.JSONDecodeError):
-                pass # Use default values if file is broken
-        # -----------------------------------------
+                pass
 
     return render_template(
         'student_view_course.html', 
         course=course, 
         subtitle_file=subtitle_file,
+        english_subtitle_file=english_subtitle_file,
         lang_code=lang_code,
         lang_name=lang_name
     )
