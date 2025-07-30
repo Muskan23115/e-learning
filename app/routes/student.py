@@ -10,8 +10,6 @@ import json
 
 bp = Blueprint('student', __name__)
 
-bp = Blueprint('student', __name__)
-
 razorpay_client = razorpay.Client(
     auth=(
         os.getenv('RAZORPAY_KEY_ID', 'rzp_test_1DP5mmOlF5G5ag'),
