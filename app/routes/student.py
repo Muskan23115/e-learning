@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from app.models import Course, Purchase, Transaction, Announcement, AnnouncementRead
 from app import db
@@ -6,6 +6,7 @@ import razorpay
 import os
 import time
 import traceback
+import json # Import the json library
 
 bp = Blueprint('student', __name__)
 
@@ -16,9 +17,7 @@ razorpay_client = razorpay.Client(
     )
 )
 
-# ==============================================================================
-# NEW ROUTE: For enrolling in free courses without payment
-# ==============================================================================
+
 @bp.route('/student/enroll_free', methods=['POST'])
 @login_required
 def enroll_free():
@@ -26,7 +25,6 @@ def enroll_free():
         course_id = request.form.get('course_id')
         course = Course.query.get(course_id)
 
-        # Security checks
         if not course:
             flash('Course not found.', 'danger')
             return redirect(url_for('student.dashboard'))
@@ -40,7 +38,6 @@ def enroll_free():
             flash('You are already enrolled in this course.', 'info')
             return redirect(url_for('student.dashboard'))
 
-        # Create a purchase record with 0 amount
         purchase = Purchase(student_id=current_user.id, course_id=course.id, amount=0)
         db.session.add(purchase)
         db.session.commit()
@@ -65,7 +62,6 @@ def create_order():
         if not course:
             return jsonify({'error': 'Course not found'}), 404
 
-        # This check ensures this route is only used for PAID courses
         if not course.price or course.price <= 0:
             return jsonify({'error': 'This course cannot be purchased. It might be free.'}), 400
 
@@ -100,7 +96,7 @@ def payment_success():
     course = Course.query.get(course_id)
     if not course:
         return jsonify({'error': 'Course not found'}), 404
-    # Verify payment signature
+
     params_dict = {
         'razorpay_order_id': order_id,
         'razorpay_payment_id': payment_id,
@@ -110,7 +106,7 @@ def payment_success():
         razorpay_client.utility.verify_payment_signature(params_dict)
     except Exception as e:
         return jsonify({'error': 'Payment verification failed'}), 400
-    # Record purchase and transaction
+
     purchase = Purchase(student_id=current_user.id, course_id=course.id, amount=course.price)
     db.session.add(purchase)
     db.session.commit()
@@ -137,10 +133,11 @@ def dashboard():
     available_courses = Course.query.filter(~Course.id.in_(purchased_ids)).all()
     purchased_courses = [p.course for p in current_user.purchases]
     order_history = current_user.purchases
-    # Announcements
+    
     all_announcements = Announcement.query.order_by(Announcement.timestamp.desc()).all()
     read_ids = {ar.announcement_id for ar in AnnouncementRead.query.filter_by(user_id=current_user.id).all()}
     unread_announcements = [a for a in all_announcements if a.id not in read_ids]
+    
     return render_template(
         'dashboard_student.html',
         available_courses=available_courses,
@@ -153,9 +150,39 @@ def dashboard():
 @login_required
 def view_course(course_id):
     course = Course.query.get_or_404(course_id)
-    # Check if student purchased this course
+    
     purchased = any(p.course_id == course_id for p in current_user.purchases)
     if not purchased:
         flash('You have not purchased this course.', 'danger')
         return redirect(url_for('student.dashboard'))
-    return render_template('student_view_course.html', course=course)
+
+    subtitle_file = None
+    lang_code = 'en'
+    lang_name = 'English'
+
+    if course.video_url:
+        video_filename_only = os.path.basename(course.video_url)
+        base_filename = video_filename_only.rsplit('.', 1)[0]
+        subtitle_file = f"{base_filename}.vtt"
+
+        # --- NEW LOGIC: READ LANGUAGE METADATA ---
+        metadata_filename = f"{base_filename}.json"
+        metadata_path = os.path.join(current_app.root_path, 'static', 'subtitles', metadata_filename)
+        
+        if os.path.exists(metadata_path):
+            try:
+                with open(metadata_path, 'r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+                    lang_code = metadata.get('language_code', lang_code)
+                    lang_name = metadata.get('language_name', lang_name)
+            except (IOError, json.JSONDecodeError):
+                pass # Use default values if file is broken
+        # -----------------------------------------
+
+    return render_template(
+        'student_view_course.html', 
+        course=course, 
+        subtitle_file=subtitle_file,
+        lang_code=lang_code,
+        lang_name=lang_name
+    )

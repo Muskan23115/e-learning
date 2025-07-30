@@ -1,26 +1,83 @@
-<video id="courseVideo" width="800" controls>
-  <source src="/path/to/video.mp4" type="video/mp4">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f0f2f5;
+            font-family: sans-serif;
+            margin: 0;
+        }
+        .player-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        video {
+            border-radius: 8px;
+            max-width: 100%;
+        }
+        select {
+            margin-top: 15px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
 
-  <track kind="subtitles" label="Spanish → English" src="/student/assets/subtitles/video1-spanish.vtt" srclang="es" default>
-  <track kind="subtitles" label="Japanese → English" src="/student/assets/subtitles/video1-japanese.vtt" srclang="ja">
+    <div class="player-container">
+        <!-- The video player -->
+        <video id="courseVideo" width="800" controls>
+            <!-- Set the video source to your Maths_Teacher video -->
+            <source src="/static/uploads/Maths_Teacher.mp4" type="video/mp4">
 
-  Your browser does not support the video tag.
-</video>
+            <!-- Add the track for the new subtitle file -->
+            <!-- The src path MUST start with /static/ -->
+            <track 
+                kind="subtitles" 
+                label="Japanese" 
+                src="/static/subtitles/Maths_Teacher.vtt" 
+                srclang="ja" 
+                default>
 
-<select id="captionSelect">
-  <option value="0">Spanish → English</option>
-  <option value="1">Japanese → English</option>
-  <option value="none">No Captions</option>
-</select>
+            Your browser does not support the video tag.
+        </video>
 
-<script>
-  document.getElementById('captionSelect').addEventListener('change', function() {
-    var video = document.getElementById('courseVideo');
-    var tracks = video.textTracks;
-    for (var i = 0; i < tracks.length; i++) {
-      tracks[i].mode = 'disabled'; // Disable all tracks
-    }
-    if (this.value !== 'none') {
-      tracks[this.value].mode = 'showing'; // Enable selected track
-    }
-  });
+        <!-- The dropdown to control captions -->
+        <select id="captionSelect">
+            <option value="0">Japanese</option>
+            <option value="none">No Captions</option>
+        </select>
+    </div>
+
+    <script>
+        document.getElementById('captionSelect').addEventListener('change', function() {
+            var video = document.getElementById('courseVideo');
+            var tracks = video.textTracks;
+
+            // First, disable all text tracks
+            for (var i = 0; i < tracks.length; i++) {
+                tracks[i].mode = 'disabled';
+            }
+
+            // If a caption option was selected (not 'none'), enable it
+            if (this.value !== 'none') {
+                // The 'value' from the <option> tag (e.g., "0") corresponds to the track index
+                tracks[this.value].mode = 'showing';
+            }
+        });
+    </script>
+
+</body>
+</html>

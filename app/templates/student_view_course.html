@@ -1,26 +1,49 @@
-{% extends 'base.html' %}
-{% block title %}{{ course.title }} | My Course{% endblock %}
-{% block content %}
-<section class="dashboard-section">
-    <div class="glass-card dashboard-card" style="max-width:600px; margin:auto;">
-        <h1 class="headline">{{ course.title }}</h1>
-        <p>{{ course.description }}</p>
-        {% if course.video_url %}
-        <div class="video-player" style="margin:1.5rem 0;">
-            <video width="100%" height="340" controls poster="/static/images/video_poster.png">
-                <source src="/{{ course.video_url }}" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-        </div>
-        {% else %}
-        <p><em>No video uploaded for this course.</em></p>
-        {% endif %}
-        {% if course.notes_url %}
-        <a href="/{{ course.notes_url }}" class="btn glass-btn" target="_blank">Download Notes (PDF)</a>
-        {% else %}
-        <p><em>No notes uploaded for this course.</em></p>
-        {% endif %}
-        <a href="{{ url_for('student.dashboard') }}" class="btn glass-btn secondary" style="margin-top:1.2rem;">Back to Dashboard</a>
-    </div>
-</section>
-{% endblock %} 
+<!-- This uses variables from your Python code -->
+<video controls width="100%">
+    
+    <!-- Use the video_url directly, prepended with a '/' to make it a root-relative path -->
+    <source src="/{{ course.video_url }}" type="video/mp4">
+
+    <!-- This 'if' block prevents an error if a video has no subtitles -->
+    {% if subtitle_file %}
+    <track
+        kind="subtitles"
+        label="{{ lang_name }}"
+        src="{{ url_for('static', filename='subtitles/' + subtitle_file) }}"
+        srclang="{{ lang_code }}"
+        default>
+    {% endif %}
+  
+    Your browser does not support the video tag.
+</video>
+
+<!-- The dropdown and script can remain the same -->
+<select id="captionSelect" style="margin-top: 15px; padding: 8px;">
+    <!-- Use the dynamic language name here -->
+    <option value="0">{{ lang_name }}</option>
+    <option value="none">No Captions</option>
+</select>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const captionSelect = document.getElementById('captionSelect');
+        const video = document.querySelector('video');
+
+        if (captionSelect && video) {
+            captionSelect.addEventListener('change', function() {
+                const tracks = video.textTracks;
+                
+                for (let i = 0; i < tracks.length; i++) {
+                    tracks[i].mode = 'disabled';
+                }
+
+                if (this.value !== 'none') {
+                    const trackIndex = parseInt(this.value, 10);
+                    if (tracks[trackIndex]) {
+                        tracks[trackIndex].mode = 'showing';
+                    }
+                }
+            });
+        }
+    });
+</script>

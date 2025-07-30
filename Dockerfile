@@ -8,9 +8,13 @@ RUN apt-get update && apt-get install -y ffmpeg
 WORKDIR /app
 
 # Install Python packages for Whisper
-# Note: Using a specific torch version compatible with CPU-only can speed up build
 RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install openai-whisper
+
+# --- ADDED THIS STEP ---
+# Pre-download the Whisper model during the build process
+# This prevents network errors when the container runs.
+RUN python -c "import whisper; whisper.load_model('base')"
 
 # Copy our processing script into the container
 COPY process_video.py .
