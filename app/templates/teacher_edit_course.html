@@ -33,4 +33,28 @@
         </form>
     </div>
 </section>
+<hr class="my-4">
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h3 class="card-title">Schedule a Live Class</h3>
+        <p class="card-text text-muted">This will send an email notification to all enrolled students.</p>
+        
+        <form action="{{ url_for('teacher.schedule_live_class', course_id=course.id) }}" method="POST">
+            <div class="form-group">
+                <label for="live_class_title">Class Title</label>
+                <input type="text" class="form-control" id="live_class_title" name="title" placeholder="e.g., Chapter 5 Review Session" required>
+            </div>
+            <div class="form-group mt-3">
+                <label for="class_time">Class Date and Time</label>
+                <input type="datetime-local" class="form-control" id="class_time" name="class_time" required>
+            </div>
+            <div class="form-group mt-3">
+                <label for="meeting_link">Meeting Link</label>
+                <input type="url" class="form-control" id="meeting_link" name="meeting_link" placeholder="https://meet.google.com/..." required>
+            </div>
+            <button type="submit" class="btn btn-success mt-4">Schedule & Notify Students</button>
+        </form>
+    </div>
+</div>
 {% endblock %} 
