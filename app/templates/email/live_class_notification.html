@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Class Notification</title>
+</head>
+<body style="font-family: sans-serif; line-height: 1.6;">
+    <h2>Hi {{ user.username }},</h2>
+    
+    <p>This is a notification that a new live class has been scheduled for a course you are enrolled in.</p>
+    
+    <hr>
+    
+    <h3>Course Details:</h3>
+    <p><strong>Course:</strong> {{ course.title }}</p>
+    
+    <h3>Live Class Details:</h3>
+    <p><strong>Class:</strong> {{ live_class.title }}</p>
+    <p><strong>Time:</strong> {{ live_class.class_time.strftime('%A, %B %d, %Y at %I:%M %p') }}</p>
+    <p><strong>Meeting Link:</strong> <a href="{{ live_class.meeting_link }}">{{ live_class.meeting_link }}</a></p>
+    
+    <hr>
+    
+    <p>We look forward to seeing you there!</p>
+    
+    <p>Best regards,<br>The SUS LMS Team</p>
+</body>
+</html>
