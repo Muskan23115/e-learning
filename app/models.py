@@ -63,3 +63,14 @@ class SupportMessage(db.Model):
     subject = db.Column(db.String(100), nullable=False)
     message = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+class LiveClass(db.Model):
+    """Model for scheduled live classes."""
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(150), nullable=False)
+    class_time = db.Column(db.DateTime, nullable=False)
+    meeting_link = db.Column(db.String(300), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    # This creates a relationship to the Course model
+    course = db.relationship('Course', backref='live_classes')

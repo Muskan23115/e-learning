@@ -1,23 +1,23 @@
-<video controls width="100%">
-    
-    <source src="/{{ course.video_url }}" type="video/mp4">
 
-    <!-- Original Language Track -->
+<video controls width="100%" id="courseVideoPlayer" crossorigin="anonymous">
+    
+
+    <source src="/{{ course.video_url }}?v={{ range(1, 10000) | random }}" type="video/mp4">
+
     {% if subtitle_file %}
     <track
         kind="subtitles"
         label="{{ lang_name }}"
-        src="{{ url_for('static', filename='subtitles/' + subtitle_file) }}"
+        src="{{ url_for('static', filename='subtitles/' + subtitle_file) }}?v={{ range(1, 10000) | random }}"
         srclang="{{ lang_code }}"
         default>
     {% endif %}
     
-    <!-- English Translation Track -->
     {% if english_subtitle_file %}
     <track
         kind="subtitles"
         label="English"
-        src="{{ url_for('static', filename='subtitles/' + english_subtitle_file) }}"
+        src="{{ url_for('static', filename='subtitles/' + english_subtitle_file) }}?v={{ range(1, 10000) | random }}"
         srclang="en">
     {% endif %}
   
@@ -28,51 +28,68 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const video = document.querySelector('video');
+        const video = document.getElementById('courseVideoPlayer');
         const captionSelect = document.getElementById('captionSelect');
-        
-        // Wait a moment for tracks to be loaded by the browser
-        setTimeout(function() {
+
+        function setupCaptionMenu() {
             const tracks = video.textTracks;
+            if (!tracks || tracks.length === 0) {
+                captionSelect.style.display = 'none';
+                return;
+            }
 
-            if (captionSelect && video && tracks.length > 0) {
-                // Populate dropdown based on available tracks
-                captionSelect.innerHTML = ''; // Clear existing options
-                for (let i = 0; i < tracks.length; i++) {
-                    const track = tracks[i];
-                    const option = document.createElement('option');
-                    option.value = i;
-                    option.textContent = track.label;
-                    captionSelect.appendChild(option);
-                    // Set initial mode
-                    track.mode = track.default ? 'showing' : 'disabled';
-                }
-                const noCapOption = document.createElement('option');
-                noCapOption.value = 'none';
-                noCapOption.textContent = 'No Captions';
-                captionSelect.appendChild(noCapOption);
+            const currentSelectedValue = captionSelect.value;
 
-                // Set dropdown to the currently showing track
+            captionSelect.innerHTML = '';
+
+            for (let i = 0; i < tracks.length; i++) {
+                const track = tracks[i];
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = track.label;
+                captionSelect.appendChild(option);
+            }
+
+            const noCapOption = document.createElement('option');
+            noCapOption.value = 'none';
+            noCapOption.textContent = 'No Captions';
+            captionSelect.appendChild(noCapOption);
+
+            if (currentSelectedValue) {
+                captionSelect.value = currentSelectedValue;
+            } else {
+                let defaultTrackIndex = -1;
                 for (let i = 0; i < tracks.length; i++) {
                     if (tracks[i].mode === 'showing') {
-                        captionSelect.value = i;
+                        defaultTrackIndex = i;
                         break;
                     }
                 }
-
-                // Event listener for changing tracks
-                captionSelect.addEventListener('change', function() {
-                    for (let i = 0; i < tracks.length; i++) {
-                        tracks[i].mode = 'disabled';
-                    }
-                    if (this.value !== 'none') {
-                        tracks[parseInt(this.value)].mode = 'showing';
-                    }
-                });
-            } else if (captionSelect) {
-                // Hide dropdown if no tracks are available
-                captionSelect.style.display = 'none';
+                captionSelect.value = defaultTrackIndex !== -1 ? defaultTrackIndex : 'none';
             }
-        }, 500); // 500ms delay
+            
+            captionSelect.style.display = 'inline-block';
+        }
+
+        captionSelect.addEventListener('change', function() {
+            const tracks = video.textTracks;
+            for (let i = 0; i < tracks.length; i++) {
+                tracks[i].mode = 'hidden'; 
+            }
+            if (this.value !== 'none') {
+                tracks[parseInt(this.value)].mode = 'showing'; 
+            }
+        });
+
+
+        let checkCount = 0;
+        const interval = setInterval(() => {
+           
+            if (video.textTracks.length >= 2 || checkCount > 25) {
+                setupCaptionMenu();
+                clearInterval(interval); 
+            }
+            checkCount++;
+        }, 200); 
     });
 </script>
