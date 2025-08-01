@@ -118,3 +118,59 @@ def delete_course(course_id):
     db.session.commit()
     flash('Course deleted successfully!', 'success')
     return redirect(url_for('teacher.dashboard'))
+from flask_mail import Message
+from app import mail
+from app.models import LiveClass, User
+from datetime import datetime
+
+def send_live_class_email(student, course, live_class):
+    """Helper function to send the notification email."""
+    msg = Message(
+        f'Live Class Scheduled: {course.title}',
+        sender='noreply@sus-lms.com',
+        recipients=[student.email]
+    )
+    msg.html = render_template(
+        'email/live_class_notification.html',
+        user=student,
+        course=course,
+        live_class=live_class
+    )
+    try:
+        mail.send(msg)
+        print(f"Email sent to {student.email}")
+    except Exception as e:
+        print(f"Failed to send email to {student.email}: {e}")
+
+@bp.route('/course/<int:course_id>/schedule', methods=['POST'])
+@login_required
+def schedule_live_class(course_id):
+    course = Course.query.get_or_404(course_id)
+    if course.teacher_id != current_user.id:
+        flash('You are not authorized to schedule classes for this course.', 'danger')
+        return redirect(url_for('teacher.dashboard'))
+
+   
+    title = request.form.get('title')
+    class_time_str = request.form.get('class_time')
+    meeting_link = request.form.get('meeting_link')
+
+    class_time = datetime.fromisoformat(class_time_str)
+
+    live_class = LiveClass(
+        title=title,
+        class_time=class_time,
+        meeting_link=meeting_link,
+        course_id=course.id,
+        teacher_id=current_user.id
+    )
+    db.session.add(live_class)
+    db.session.commit()
+
+    enrolled_students = User.query.join(Purchase).filter(Purchase.course_id == course.id).all()
+
+    for student in enrolled_students:
+        send_live_class_email(student, course, live_class)
+
+    flash(f'Live class "{title}" has been scheduled and students have been notified!', 'success')
+    return redirect(url_for('teacher.edit_course', course_id=course.id))
