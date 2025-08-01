@@ -72,5 +72,4 @@ class LiveClass(db.Model):
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-    # This creates a relationship to the Course model
     course = db.relationship('Course', backref='live_classes')
